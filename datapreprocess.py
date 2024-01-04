@@ -1,4 +1,5 @@
 # Importing Libraries
+import cv2
 import os
 import torch
 from torch.utils.data import DataLoader, random_split, Dataset
@@ -25,15 +26,15 @@ class CustomDataset(Dataset):
   def _load_data(self):
       data = []                                                  # data is a list of dictionary for each image containing imagepath,
 
-      for class_name in self.class_names:                        # self.class_names is a list of the names of all the folders containing classified hand images
-          class_dir = os.path.join(self.root_dir, class_name)    # specific class folder
-          for file_name in os.listdir(class_dir):                # file name in a given class folder
-              image_path = os.path.join(class_dir, file_name)
-              data.append({
-                  'image_path': image_path,
-                  'truth_labels': self.get_label(class_name),              # 29
-                  'bounding_box': self.get_bounding_box_info(),  # 4 
-              })
+      for class_name in self.class_names:                       # self.class_names is a list of the names of all the folders containing classified hand images
+          if class_name != '.DS_Store':
+            class_dir = os.path.join(self.root_dir, class_name)    # specific class folder
+            for file_name in os.listdir(class_dir):                # file name in a given class folder
+                image_path = os.path.join(class_dir, file_name)
+                data.append({
+                    'image_path': image_path,
+                    'truth_labels': self.get_label(class_name)  + self.get_bounding_box_info(),    # 29 + 4
+                })
       return data
   
   def get_label(self, class_name):
@@ -60,14 +61,23 @@ class CustomDataset(Dataset):
   def __getitem__(self, idx):
       sample = self.data[idx]
       image = Image.open(sample['image_path']).convert('RGB')
+      # image = cv2.imread(sample['image_path'])
+      '''
+      # Check if the image is successfully loaded
+      if image is not None:
+          # Display the image
+          cv2.imshow('Image', image)
+          cv2.waitKey(0)
+          cv2.destroyAllWindows()
+      '''
+      # print(sample['truth_labels'])         # truth labels are working fine
 
       if self.transform:
           image = self.transform(image)
 
       return {
           'image': image,
-          'label': sample['class_name'],
-          'bounding_box': sample['bounding_box'],
+          'label': sample['truth_labels'],
       }
 
 transform = transforms.Compose([
@@ -77,10 +87,29 @@ transform = transforms.Compose([
 
 # Create dataset instance
 dataset = CustomDataset(root_dir='asl_alphabet_train', transform=transform)
+train_dataset, test_dataset = random_split(dataset, [0.8, 0.2])
+
 # Create DataLoader
-data_loader = DataLoader(dataset, batch_size=32, shuffle=True)
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True) #TODO: change batch_size = 32
+test_loader = DataLoader(test_dataset, batch_size=32, shuffle=True)
 
+'''
+for batch in train_loader:
+    batch_data, batch_labels = batch['image'], batch['label']
+    # Process the batch_data and batch_labels
+    print(f"Batch Data Shape: {batch_data.shape}")  # Assuming batch_data is a torch.Tensor
+    print(f"Batch Labels: {batch_labels}")
+    break
+'''
 
+'''
+for batch_data, batch_labels in train_loader:
+    # Process the batch_data and batch_labels
+    print(f"Batch Data: {batch_data}")
+    print(f"Batch Labels: {batch_labels}")
+'''
+
+'''
 train_transform = transforms.Compose([
   
   # Resize to 224x224, since images are 200x200, it just resizes larger while 
@@ -113,3 +142,4 @@ def load_data(data_dir):
   test_loader = DataLoader(test_dataset, batch_size=32, shuffle=True)
   
   return train_loader, test_loader
+'''
