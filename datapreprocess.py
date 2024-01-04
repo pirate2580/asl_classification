@@ -1,6 +1,7 @@
 # Importing Libraries
 import cv2
 import os
+import numpy as np # TODO get rid of this after testing
 import torch
 from torch.utils.data import DataLoader, random_split, Dataset
 import torchvision.transforms as transforms
@@ -15,6 +16,9 @@ labels['del'] = 26
 labels['nothing'] = 27
 labels['space'] = 28
 
+# NOTE: data is not incorrectly labelled, the way it shows up on folder is ordered differently from the code
+#       but still correct
+
 # custom Dataset in order to include all 29 class labels and the bounding box for each of them
 class CustomDataset(Dataset):
   def __init__(self, root_dir, transform=None):
@@ -22,6 +26,7 @@ class CustomDataset(Dataset):
       self.transform = transform
       self.class_names = sorted(os.listdir(root_dir))     # list of strings containing the names of all folders in root_dir
       self.data = self._load_data()                       # calls own load_data method
+      print(self.class_names)
 
   def _load_data(self):
       data = []                                                  # data is a list of dictionary for each image containing imagepath,
@@ -61,16 +66,15 @@ class CustomDataset(Dataset):
   def __getitem__(self, idx):
       sample = self.data[idx]
       image = Image.open(sample['image_path']).convert('RGB')
-      # image = cv2.imread(sample['image_path'])
       '''
-      # Check if the image is successfully loaded
+      image = cv2.imread(sample['image_path'])
+      Check if the image is successfully loaded
       if image is not None:
           # Display the image
           cv2.imshow('Image', image)
           cv2.waitKey(0)
           cv2.destroyAllWindows()
       '''
-      # print(sample['truth_labels'])         # truth labels are working fine
 
       if self.transform:
           image = self.transform(image)
@@ -90,17 +94,21 @@ dataset = CustomDataset(root_dir='asl_alphabet_train', transform=transform)
 train_dataset, test_dataset = random_split(dataset, [0.8, 0.2])
 
 # Create DataLoader
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True) #TODO: change batch_size = 32
-test_loader = DataLoader(test_dataset, batch_size=32, shuffle=True)
+train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True) #TODO: change batch_size = 32
+test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
 
-'''
+
 for batch in train_loader:
     batch_data, batch_labels = batch['image'], batch['label']
-    # Process the batch_data and batch_labels
+    images_np = batch_data.numpy()[0]
     print(f"Batch Data Shape: {batch_data.shape}")  # Assuming batch_data is a torch.Tensor
-    print(f"Batch Labels: {batch_labels}")
+    print(f"Batch Labels: {batch_labels} batch labels len: {len(batch_labels)}")
+    # Process the batch_data and batch_labels
+    cv2.imshow('image', np.transpose(images_np, (1, 2, 0)))
+    cv2.waitKey(0)
     break
-'''
+
+# TODO: Issue is that there is an off by one error in the labelling?
 
 '''
 for batch_data, batch_labels in train_loader:
