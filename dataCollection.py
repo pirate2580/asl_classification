@@ -4,7 +4,7 @@ from cvzone.HandTrackingModule import HandDetector # module to help with data co
 import numpy as np
 import math
 import time
-import torch
+import random
 
 '''
 This file is purely for data collection and some preprocessing
@@ -16,7 +16,7 @@ This file is purely for data collection and some preprocessing
 alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 labels = {alphabet[i]: i for i in range(len(alphabet))}
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(0)           # try 0 or 1
 detector = HandDetector(maxHands = 1)
 
 offset = 10
@@ -34,7 +34,7 @@ while True:
   success, img = cap.read()
 
   #NOTE: with our bounding box normalization, we DO NOT need to change aspect ratio right away
-  hands, img = detector.findHands(img)
+  hands, img = detector.findHands(cv2.resize(img, (imgSize, imgSize)), draw = False)
   if hands:
     hands = hands[0]
     x, y, w, h = hands['bbox']
@@ -59,9 +59,17 @@ while True:
 
 cap.release()
 
-image_stack = np.stack(trainx_list, axis = 0)
-labels_stack = np.stack(trainy_list, axis = 0)
+combined_data = list(zip(trainx_list, trainy_list))
 
-np.save('trainx.npy', image_stack)
-np.save('trainy.npy', labels_stack)
+# Shuffle the combined data
+random.shuffle(combined_data)
+
+# Unzip the shuffled data back into separate lists
+shuffled_x, shuffled_y = zip(*combined_data)
+
+image_stack = np.stack(shuffled_x, axis = 0)
+labels_stack = np.stack(shuffled_y, axis = 0)
+
+np.save('testx.npy', image_stack)    #change to whatever npy file you want info to go into
+np.save('testy.npy', labels_stack)
 
