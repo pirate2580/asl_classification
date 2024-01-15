@@ -62,7 +62,7 @@ model = tf.keras.Sequential([
 ])
 
 
-model.load_weights('yolo_resnet_50.h5')
+model.load_weights('yolo_mobilenet.h5')
 
 #model.summary()
 
